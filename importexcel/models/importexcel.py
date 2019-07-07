@@ -90,6 +90,15 @@ class Importexcel(models.Model):
     def importexcel(self):
         importexcel_func(self)
         return True
+    
+    def check_file(self):
+        return {
+             'type' : 'ir.actions.act_url',
+#              'url': '/web/binary/download_checked_import_sml_file?model=stock.picking&id=%s'%(self.id),
+             'url': '/web/binary/download_model/tonkho?download_model=importexcel.importexcel&download_model_id=%s&download_key=%s'%(self.id,'importexcel.checkfile'),
+             'target': 'new',
+             }
+    
    
     def import_all(self):
         importexcel_func(self,key=u'Department')

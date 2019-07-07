@@ -17,7 +17,7 @@ class KhoLine(models.TransientModel):
     
     
     
-class DownloadQuants(models.TransientModel):
+class DownloadTonKho(models.TransientModel):
     _inherit = "downloadwizard.download"
     
     parent_location_id =  fields.Many2one('stock.location',
@@ -49,14 +49,14 @@ class DownloadQuants(models.TransientModel):
         
     @api.multi
     def gen_pick_func(self): 
-        rs = super(DownloadQuants, self).gen_pick_func()
+        rs = super(DownloadTonKho, self).gen_pick_func()
         pick_func = {'stock.quant':download_quants,'product.product':download_product,'write_xl_bb':write_xl_bb,'check_imported_file_sml':check_imported_file_sml}
         rs.update(pick_func)
         return rs
     @api.multi
     def gen_model_verbal_dict(self): 
         adict =  {'stock.quant':u'Kho','product.product':u'Vật tư'}
-        rs = super(DownloadQuants, self).gen_model_verbal_dict()
+        rs = super(DownloadTonKho, self).gen_model_verbal_dict()
         rs.update(adict)
         return rs
     

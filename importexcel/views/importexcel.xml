@@ -11,6 +11,7 @@
                <header>
                   <button name="importexcel" string="import" type="object" class="btn-primary" />
                   <button name="import_all" string="import all" type="object" class="btn-primary" />
+                  <button name="check_file" string="check_file" type="object" class="btn-primary" />
                   <button name="set_parameter_tonkho" string="set_parameter_tonkho" type="object" class="btn-primary" />
                                     <button name="test_code" string="test_code" type="object" class="btn-primary" />
                   

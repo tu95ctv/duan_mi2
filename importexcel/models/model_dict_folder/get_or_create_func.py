@@ -27,8 +27,11 @@ def get_or_create_object_has_x2m (self, class_name,
         get_or_create = False
         for val in x2m_values:
             search_dict[x2m_field] = val #
-            obj, get_or_create_iterator = get_or_create_object_sosanh(self, class_name, search_dict,
-                                    write_dict =write_dict, is_must_update=is_must_update, noti_dict=noti_dict,
+            obj, get_or_create_iterator = get_or_create_object_sosanh(self, 
+                                    class_name, 
+                                    search_dict,
+                                    write_dict =write_dict,
+                                    is_must_update=is_must_update,noti_dict=noti_dict,
                                     inactive_include_search = inactive_include_search,
                                     model_dict = model_dict,
                                     exist_val=exist_val,
@@ -156,7 +159,10 @@ def get_or_create_object_sosanh(self, class_name,
                 f_name = get_key(field_attr, 'transfer_name') or f_name
                 search_dict_new[f_name]=val
             created_object = self.env[class_name].create(search_dict_new)
+
             this_model_noti_dict['create'] = this_model_noti_dict.get('create', 0) + 1
+           
+            
             return_obj =  created_object
             return return_obj,get_or_create
     allow_write_all_field = setting['allow_write']

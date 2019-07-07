@@ -10,11 +10,68 @@ from odoo.addons.downloadwizard.models.dl_models.dl_model  import wrap_center_ve
 from odoo.addons.importexcel.models.model_dict_folder.get_or_create_func import get_or_create_object_has_x2m
 from odoo.addons.importexcel.models.model_dict_folder.recursive_func import export_all_no_pass_dict_para,rut_gon_key,ordereddict_fields, check_xem_att_co_nam_ngoai_khong, add_model_n_type_n_required_to_fields,define_col_index,check_col_index_match_xl_title,write_get_or_create_title, convert_dict_to_order_dict_string, export_some_key_value_cua_fields_MD 
 
-
-
-
-
-
+def before_ci(self, field_attr, setting, check_file, needdata):
+    func_map_database_existence = setting.get('st_allow_func_map_database_existence') and field_attr.get('func_map_database_existence')
+    if func_map_database_existence:
+        exist_val = func_map_database_existence(needdata,self) 
+    else:
+        exist_val = False
+    if exist_val:
+        st_is_allow_write_existence = setting['st_is_allow_write_existence']
+        func_check_if_excel_is_same_existence =   setting.get('st_allow_check_if_excel_is_same_existence') and  field_attr.get('func_check_if_excel_is_same_existence') 
+    
+    is_go_loop_fields = not exist_val or (exist_val and (func_check_if_excel_is_same_existence or st_is_allow_write_existence)) or check_file
+    if is_go_loop_fields:
+        if check_file:
+            is_search = True
+            is_create = False
+            is_write = False
+        else:
+            if exist_val:
+                if st_is_allow_write_existence:
+                    is_create = False
+                    is_write = True
+                else:
+                    is_create = False
+                    is_write = False
+                if func_check_if_excel_is_same_existence:
+                    is_search = True
+                else:
+                    is_search = False
+                
+                    
+            else:
+                is_create = True
+                is_write = True
+                is_search =True
+    return is_create, is_write, is_search, exist_val, is_go_loop_fields
+                
+def after_ci(setting, exist_val, field_attr, check_file, sheet_of_copy_wb, row, sheet, get_or_create, obj, noti_dict):
+    if exist_val:
+        func_check_if_excel_is_same_existence =   setting.get('st_allow_check_if_excel_is_same_existence') and  field_attr.get('func_check_if_excel_is_same_existence')
+        if  func_check_if_excel_is_same_existence:# and not get_or_create:,not st_is_allow_write_existence and
+            func_check_if_excel_is_same_existence(get_or_create, obj, exist_val)
+        val= exist_val.id
+        obj = exist_val
+        get_or_create = True
+        this_model_notice = noti_dict.setdefault(field_attr.get('model'),{})
+        this_model_notice['exist_val'] = this_model_notice.get('exist_val',0) + 1
+    field_attr['get_or_create'] = get_or_create
+    
+    if check_file:
+#             if val ==False or val ==None:
+#                 val = None
+        offset_write_xl = get_key(field_attr, 'offset_write_xl')
+        if offset_write_xl !=None:
+            if get_or_create:
+                get_or_create_display = u'Đã Có' 
+            else:
+                if field_attr['fields']['name']['val'] !=False:
+                    get_or_create_display = u'Chưa'
+                else:
+                    get_or_create_display = u'empty cell'
+            sheet_of_copy_wb.write(row, sheet.ncols + offset_write_xl, get_or_create_display, wrap_center_vert_border_style)
+                
 def gen_first_last_row(self, MD, row_title_index,nrows, dong_test_in_MD):
             off_set_row = get_key(MD, 'begin_data_row_offset_with_title_row', 1)
             min_row = row_title_index + off_set_row
@@ -171,8 +228,9 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
 #         prepare_func(needdata,self)
 #     
     
-    
-    
+    sh_names = xl_workbook.sheet_names()
+    if check_file:
+        workbook_copy = copy(xl_workbook)
     for sheet_name in sheet_names:
 #         print ('**sheet_name',sheet_name)
         COPIED_MD = deepcopy(MD)
@@ -180,7 +238,7 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
         needdata['sheet_name'] = sheet_name
 
         sheet = xl_workbook.sheet_by_name(sheet_name)
-
+        
         
         set_is_largest_map_row_choosing = MD.get( 'set_is_largest_map_row_choosing')#set_is_largest_map_row_choosing  is boolean
         nrows = sheet.nrows
@@ -203,16 +261,17 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
         first_row,last_row = gen_first_last_row(self, MD, row_title_index,nrows, dong_test_in_MD)
         
         if check_file:
-            workbook_copy = copy(xl_workbook)
-            sheet_of_copy_wb = workbook_copy.get_sheet(0)
+            index = sh_names.index(sheet_name)
+#             sheet_of_copy_wb = workbook_copy.get_sheet(0)
+            sheet_of_copy_wb = workbook_copy.get_sheet(index)
             write_get_or_create_title(MD,sheet,sheet_of_copy_wb, row_title_index)
-            is_search = True
-            is_create = False
-            is_write = False
+#             is_search = True
+#             is_create = False
+#             is_write = False
         else:
-            is_search = True
-            is_create = True
-            is_write = True
+#             is_search = True
+#             is_create = True
+#             is_write = True
             workbook_copy = None
             sheet_of_copy_wb = None
         
@@ -225,21 +284,23 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
                                               merge_tuple_list, 
                                               needdata, 
                                               noti_dict,
-                                              main_call_create_instance_model=True,
+#                                               main_call_create_instance_model=True,
 #                                               key_tram=key_tram,
                                               check_file = check_file,
                                               sheet_of_copy_wb = sheet_of_copy_wb,
                                               setting=setting,
-                                              is_search = is_search,
-                                              is_create = is_create,
-                                              is_write = is_write,
+#                                               is_search = is_search,
+#                                               is_create = is_create,
+#                                               is_write = is_write,
                                )
         
     if number_row_count:
         self.imported_number_of_row = number_row_count + 1
-    last_import_function  = get_key(MD,'last_import_function')
-    if last_import_function:
-        last_import_function(needdata,self)
+    
+    
+#     last_import_function  = get_key(MD,'last_import_function')
+#     if last_import_function:
+#         last_import_function(needdata,self)
     self.log= noti_dict
     return workbook_copy
     
@@ -252,87 +313,108 @@ def create_instance (self,
                     merge_tuple_list,
                     needdata,
                     noti_dict, 
-                    main_call_create_instance_model = False,
+#                     main_call_create_instance_model = False,
                     check_file = False,
                     sheet_of_copy_wb = False,
                     setting={},
-                    exist_val = False,
-                    is_search = True,
-                    is_create = True,
-                    is_write = True,
+#                     exist_val = False,
+#                     is_search = True,
+#                     is_create = True,
+#                     is_write = True,
                     ):
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
-     
         
     key_search_dict = {}
     update_dict = {}
     model_name = MD.get( 'model')
     collection_dict = {}
-    for field_name,field_attr  in MD['fields'].items():
-        a_field_code = get_a_field_val(self,
-                                       field_name,
-                                       field_attr,
-                                       needdata,
-                                       row,
-                                       sheet,
-                                       check_file,
-                                       sheet_of_copy_wb,
-                                       merge_tuple_list,
-                                       model_name,
-                                       noti_dict,
-                                       key_search_dict,
-                                       update_dict,
-                                       collection_dict,
-                                       setting)
+    is_create, is_write, is_search, exist_val, is_go_loop_fields = before_ci(self,MD, setting, check_file, needdata)
+    if is_go_loop_fields:
+        for field_name,field_attr  in MD['fields'].items():
+            a_field_code = get_a_field_val(self,
+                                           field_name,
+                                           field_attr,
+                                           needdata,
+                                           row,
+                                           sheet,
+                                           check_file,
+                                           sheet_of_copy_wb,
+                                           merge_tuple_list,
+                                           model_name,
+                                           noti_dict,
+                                           key_search_dict,
+                                           update_dict,
+                                           collection_dict,
+                                           setting)
+            if a_field_code =='break_out_a_row_because_a_required':
+                if field_attr.get('raise_if_False') and not check_file:
+                    raise UserError('raise_if_False field: %s'%field_name)
+                break
         if a_field_code =='break_out_a_row_because_a_required':
-            if field_attr.get('raise_if_False') and not check_file:
-                raise UserError('raise_if_False field: %s'%field_name)
-            break
-    if a_field_code =='break_out_a_row_because_a_required':
-        if main_call_create_instance_model:
+#             if main_call_create_instance_model:
             break_condition_func_for_main_instance  = get_key(MD, 'break_condition_func_for_main_instance')
             if break_condition_func_for_main_instance:
                 break_condition_func_for_main_instance(needdata)
-        obj_val = False
-        get_or_create = False
-        obj, obj_val, get_or_create =  False, obj_val, get_or_create
+            obj = False
+            obj_val = False
+            get_or_create = None
+        elif collection_dict.get('instance_false'):# có 1 field = false and required ==> instance đó = False
+            obj, obj_val, get_or_create =  False, False, None
+        
+        else:
+            obj, obj_val, get_or_create  = get_or_create_instance_from_key_search_and_update_dict(
+                                                    self,
+                                                    model_name,
+                                                    key_search_dict,
+                                                    update_dict,
+                                                    check_file,
+                                                    noti_dict,
+                                                    MD,
+                                                    exist_val=exist_val,
+                                                    setting=setting,
+                                                    is_search = is_search,
+                                                    is_create = is_create,
+                                                    is_write = is_write,
+                                                       )
     
-    elif collection_dict.get('instance_false'):# có 1 field = false and required ==> instance đó = False
-        obj, obj_val, get_or_create =  None, None, False
     
-    else:
-        obj,obj_val, get_or_create  = get_or_create_instance_from_key_search_and_update_dict(
-                                                self,
-                                                model_name,
-                                                key_search_dict,
-                                                update_dict,
-                                                check_file,
-                                                noti_dict,
-                                                MD,
-                                                exist_val=exist_val,
-                                                setting=setting,
-                                                is_search = is_search,
-                                                is_create = is_create,
-                                                is_write = is_write,
-                                                   )
+#     after_ci(exist_val,func_check_if_excel_is_same_existence, field_attr, check_file, sheet_of_copy_wb, row, sheet, get_or_create, obj, noti_dict)
+
+
+    if exist_val:
+        func_check_if_excel_is_same_existence =   setting.get('st_allow_check_if_excel_is_same_existence') and  MD.get('func_check_if_excel_is_same_existence')
+        if  func_check_if_excel_is_same_existence:# and not get_or_create:,not st_is_allow_write_existence and
+            func_check_if_excel_is_same_existence(get_or_create, obj, exist_val)
+        obj_val= exist_val.id
+        obj = exist_val
+        get_or_create = True
+        this_model_notice = noti_dict.setdefault(MD.get('model'),{})
+        this_model_notice['exist_val'] = this_model_notice.get('exist_val',0) + 1
+    MD['get_or_create'] = get_or_create
     if check_file:
-        if obj_val == False:
-            obj_val = None
-            
-    last_record_function = get_key(MD, 'last_record_function')
-    if last_record_function:
-        last_record_function(needdata,self)
-        
-        
+#             if val ==False or val ==None:
+#                 val = None
+        offset_write_xl = get_key(MD, 'offset_write_xl')
+        if offset_write_xl !=None:
+            if get_or_create:
+                get_or_create_display = u'Đã Có' 
+            elif get_or_create == None:
+                get_or_create_display = u'None'
+                
+            else:
+                if 'name' not in MD['fields']:
+                    get_or_create_display = u'Chưa'
+                else:
+                    if MD['fields']['name']['val'] !=False:
+                        get_or_create_display = u'Chưa'
+                    else:
+                        get_or_create_display = u'empty cell'
+            sheet_of_copy_wb.write(row, sheet.ncols + offset_write_xl, get_or_create_display, wrap_center_vert_border_style)
+    #     if check_file:
+    #         if obj_val == False:
+    #             obj_val = None
+#     last_record_function = get_key(MD, 'last_record_function')
+#     if last_record_function:
+#         last_record_function(needdata, self)
     return obj, obj_val, get_or_create 
 
 
@@ -437,7 +519,7 @@ def get_a_field_val(self,
     print ("row: ", row,'model_name: ',model_name,'-field: ', field_name, '-val: ', val)
     check_type_of_val(field_attr, val, field_name, model_name)
     a_field_code = False
-    return False        
+    return a_field_code        
 #F2
 def read_val_for_ci(self,
                     field_attr,
@@ -475,79 +557,24 @@ def read_val_for_ci(self,
         print ('excel read model_name:%s field_name:%s'%(for_print_para['model_name'],for_print_para['field_name']),'xl_val',xl_val,'val',xl_val)
     
     elif field_attr.get('fields') :
+#         before_ci()
+        obj,val, get_or_create  = create_instance (self,
+                                                                field_attr,
+                                                                sheet, 
+                                                                row, 
+                                                                merge_tuple_list,
+                                                                needdata, 
+                                                                noti_dict,
+                                                                check_file = check_file ,
+                                                                sheet_of_copy_wb = sheet_of_copy_wb,
+#                                                                 exist_val = exist_val,
+                                                                setting=setting,
+#                                                                 is_search = is_search,
+#                                                                 is_create = is_create,
+#                                                                 is_write = is_write,
+                                                               )
+#         after_ci()
         
-        
-        func_map_database_existence = setting.get('st_allow_func_map_database_existence') and field_attr.get('func_map_database_existence')
-        if func_map_database_existence:
-            exist_val = func_map_database_existence(needdata,self) 
-        else:
-            exist_val = False
-        if exist_val:
-            st_is_allow_write_existence = setting['st_is_allow_write_existence']
-            func_check_if_excel_is_same_existence =   setting.get('st_allow_check_if_excel_is_same_existence') and  field_attr.get('func_check_if_excel_is_same_existence') 
-        if not exist_val or (exist_val and (func_check_if_excel_is_same_existence or st_is_allow_write_existence)) or check_file:
-            if check_file:
-                is_search = True
-                is_create = False
-                is_write = False
-            else:
-                if exist_val:
-                    if st_is_allow_write_existence:
-                        is_create = False
-                        is_write = True
-                    else:
-                        is_create = False
-                        is_write = False
-                    if func_check_if_excel_is_same_existence:
-                        is_search = True
-                    else:
-                        is_search = False
-                    
-                        
-                else:
-                    is_create = True
-                    is_write = True
-                    is_search =True
-            
-            obj,val, get_or_create  = create_instance (self,
-                                                                    field_attr,
-                                                                    sheet, 
-                                                                    row, 
-                                                                    merge_tuple_list,
-                                                                    needdata, 
-                                                                    noti_dict,
-                                                                    check_file = check_file ,
-                                                                    sheet_of_copy_wb = sheet_of_copy_wb,
-                                                                    exist_val = exist_val,
-                                                                    setting=setting,
-                                                                    is_search = is_search,
-                                                                    is_create = is_create,
-                                                                    is_write = is_write,
-                                                                   )
-
-        if exist_val:
-            if  func_check_if_excel_is_same_existence:# and not get_or_create:,not st_is_allow_write_existence and
-                func_check_if_excel_is_same_existence(get_or_create, obj, exist_val)
-            val= exist_val.id
-            obj = exist_val
-            get_or_create = True
-            this_model_notice = noti_dict.setdefault(field_attr.get('model'),{})
-            this_model_notice['exist_val'] = this_model_notice.get('exist_val',0) + 1
-        field_attr['get_or_create_sign'] = get_or_create
-        
-        if check_file:
-#             if val ==False or val ==None:
-#                 val = None
-            offset_write_xl = get_key(field_attr, 'offset_write_xl')
-            if offset_write_xl !=None:
-                if get_or_create:
-                    get_or_create_display = u'Đã Có' 
-                else:
-                    if field_attr['fields']['name']['val'] !=False:
-                        get_or_create_display = u'Chưa'
-                    else:
-                        get_or_create_display = u'empty cell'
-                sheet_of_copy_wb.write(row,sheet.ncols + offset_write_xl, get_or_create_display, wrap_center_vert_border_style)
     return obj, val      
 
 def get_or_create_instance_from_key_search_and_update_dict(self,
@@ -666,4 +693,4 @@ def check_type_of_val(field_attr, val, field_name, model_name):
             if not pass_type_check:
                 raise UserError(u'model: %s- field:%s có giá trị: %s, đáng lẽ là field_type:%s nhưng lại có type %s'%(model_name, field_name,val,field_type,type(val)))
             
-            
+

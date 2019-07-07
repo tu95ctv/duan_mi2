@@ -57,6 +57,8 @@ def gen_model_dict_for_stock_move_line(sml_title_row=False, self=None, key_tram=
                     'title_rows_some_sheets':{'key_ltk':{u'XFP, SFP các loại':[2,3]}},
                     'begin_data_row_offset_with_title_row' :{all_key_tram:1,
                                                              key_tti_dc:2},
+                    'offset_write_xl':{all_key_tram:1}, 
+                    'string':u'Dong dieu chuyen',
                     'sheet_names':{
 #                         'key_ltk':lambda self: [u'Truyền dẫn',u'IP (VN2, VNP)',u'GTGT',u'Chuyển Mạch (IMS, Di Động)',u'Vô tuyến']if not self.sheet_name else [self.sheet_name],
 #                         'key_ltk':lambda self: [u'Truyền dẫn',u'IP (VN2, VNP)',u'GTGT',u'Chuyển Mạch (IMS, Di Động)',u'Vô tuyến']if not self.sheet_name else [self.sheet_name],
@@ -88,10 +90,14 @@ def gen_model_dict_for_stock_move_line(sml_title_row=False, self=None, key_tram=
                                     }
                                  },
 #                     'prepare_func': {sml: prepare_func_},
-                    'last_import_function':{all_key_tram:last_import_function_ if not self._context.get('not_last_import_function')else None, sml:None },
-                    'last_record_function':{all_key_tram:gan_inventory_id_vao_needdata,
-                                                    key_ltk_dc:last_record_function_ltk_vtdc_ ,
-                                                    sml:None},
+                   
+                    
+#                     'last_import_function':{all_key_tram:last_import_function_ if not self._context.get('not_last_import_function')else None, sml:None },
+#                     'last_record_function':{all_key_tram:gan_inventory_id_vao_needdata,
+#                                                     key_ltk_dc:last_record_function_ltk_vtdc_ ,
+#                                                     sml:None},
+                    
+                    
                     'break_condition_func_for_main_instance':{#all_key_tram:None,
                                                               all_key_tram:break_condition_func_for_main_instance_,
                                                               key_137:None,
@@ -173,7 +179,7 @@ thiết bị
                     ('product_id',{'string':u'Tên Vật tư',
                                    'print_write_dict_new':True,
                                    'search_func':search_func_for_product_id_,
-                                   'offset_write_xl':{sml:1}, 
+                                   'offset_write_xl':{all_key_tram:2}, 
                                    'key':'Both',
                                    'required':{all_key_tram:True},
                                    'required_when_check_file':False,
@@ -824,9 +830,10 @@ thiết bị'''
                
                 ('prod_lot_id', {
                                   'print_write_dict_new':True,
-                                 'offset_write_xl':{sml:2},
+                                 'offset_write_xl':{all_key_tram:3},
                                  'required_force':{all_key_tram:False,key_137:True},
-                                 'transfer_name':{sml:'lot_id'},'key':True,'string':u'Serial number',
+                                 'transfer_name':{sml:'lot_id'},'key':True,
+                                 'string':u'Serial number',
                                  'func_map_database_existence':func_map_database_existence_for_lot_id_,
 #                                      'set_val_instead_loop_fields':{sml:set_val_instead_loop_fields_prod_lot_id_},
                                  
@@ -898,15 +905,20 @@ def lot_name_key_ltk_dc_(val,needdata,self):
 
 
 
-def last_record_function_ltk_vtdc_(n,self=None):
-    if n['vof_dict']['product_id']['get_or_create_sign']== False:
-        raise UserError(u'Product %s  phải được tạo từ trước'%n['vof_dict']['product_id']['fields']['name']['val'])
-    gan_inventory_id_vao_needdata(n,self)
-def gan_inventory_id_vao_needdata(n,self):
-    if n['vof_dict']['inventory_id']['val'] and  not n.get('inventory_id'):
-        n['inventory_id'] = n['vof_dict']['inventory_id']['val']
-def last_import_function_(n,self):
-    self.inventory_id = n['inventory_id']
+# def last_record_function_ltk_vtdc_(n,self=None):
+#     if n['vof_dict']['product_id']['get_or_create_sign']== False:
+#         raise UserError(u'Product %s  phải được tạo từ trước'%n['vof_dict']['product_id']['fields']['name']['val'])
+#     gan_inventory_id_vao_needdata(n,self)
+# 
+# 
+# def gan_inventory_id_vao_needdata(n,self):
+#     if n['vof_dict']['inventory_id'].get('val') and  not n.get('inventory_id'):
+#         n['inventory_id'] = n['vof_dict']['inventory_id']['val']
+# def last_import_function_(n,self):
+#     self.inventory_id = n['inventory_id']
+
+
+
 def convert_float_location_(v,n):
 #     return v
     if isinstance(v, float):
@@ -1227,8 +1239,6 @@ def location_id_for_sml_(v,n,self):
 #         return self.location_id.id
     
 def inv_id_(v,n,self,import_from_inventory=None):       
-#     raise UserError(self._context.get('import_from_inventory'))
-#     raise UserError("self._context.get('not_last_import_function') %s"%self._context.get('not_last_import_function'))
     if  import_from_inventory:
         return self.id
     return n.setdefault('inventory_id_save',v)

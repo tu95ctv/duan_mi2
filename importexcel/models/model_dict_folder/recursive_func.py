@@ -13,6 +13,7 @@ ATT_TYPE_LIST ={
   'begin_data_row_offset_with_title_row': ['int'],
   'break_condition_func_for_main_instance': ['NoneType', 'function'],
   'bypass_this_field_if_value_equal_False': ['bool'],
+  'inactive_include_search': ['bool'],
   'is_x2m_field': ['bool'],
   'remove_all_or_just_add_one_x2m': ['bool','str'],
   'bypass_this_field_if_value_equal_False_default': ['bool'],
