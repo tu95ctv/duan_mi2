@@ -158,7 +158,7 @@ def gen_user_department_model_dict():
                 ('phone',{'func':None,'xl_title':u'Số điện thoại','key':False}),
                 ('cac_sep_ids',{'key':False,'required':False,'only_get':True,
                                         'fields':[
-                                                 ('login',{'xl_title':u'Cấp trên',  'key':True, 'required':True, 'is_x2m_field':True}),
+                                                 ('login',{'xl_title':u'Cấp trên',  'key':True, 'required':True, 'st_is_x2m_field':True}),
                                                  ]
                 }),  
                 ('groups_id',{'key':False,
@@ -166,7 +166,7 @@ def gen_user_department_model_dict():
                                     'bypass_this_field_if_value_equal_False':True,
                                     'remove_all_or_just_add_one_x2m': 'add_one',
                                     'fields':[
-                                             ('name',{'xl_title':u'groups_id',  'key':True, 'required': True,'is_x2m_field':True}),     
+                                             ('name',{'xl_title':u'groups_id',  'key':True, 'required': True,'st_is_x2m_field':True}),     
                                               ]
                                     }
                  ),  
@@ -228,7 +228,7 @@ def gen_user_department_model_dict():
                       ('slncl',{'xl_title':u'Số lượng người chia điểm'}),
                       ('ti_le_chia_diem',{'xl_title':u'Tỉ lệ chia điểm'}),
                        ('cd_children_ids',{'fields':[
-                            ('user_id',{'xl_title':u'Các CV Chia Điểm Con','func':cd_children_ids_,'key':True,'is_x2m_field':True,'required':True }),
+                            ('user_id',{'xl_title':u'Các CV Chia Điểm Con','func':cd_children_ids_,'key':True,'st_is_x2m_field':True,'required':True }),
                             ('loai_record',{'set_val':u'Công Việc','key':True})     ,
                             ('gio_bat_dau',{'key':True,'bypass_check_type':True,'func':lambda v,n: n['vof_dict']['gio_bat_dau']['val']}),
                             ('gio_ket_thuc',{'key':True,'bypass_check_type':True,'func':lambda v,n: n['vof_dict']['gio_ket_thuc']['val']}),

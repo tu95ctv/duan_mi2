@@ -37,7 +37,11 @@ def gen_tvcv_model_dict():
                         ( 'code',{'func':None,'xl_title':u'Mã CV',
                                   'key':True ,'required':True}),
                         ('do_phuc_tap',{'func':convert_integer,'xl_title':u'Độ phức tạp','key':False}),
-                        ('diem',{'func':None,'xl_title':u'Điểm','key':False}),
+                        ('diem',{'func':None,
+                                 'xl_title':u'Điểm',
+                                 'key':False,
+                                 'offset_write_xl':2,
+                                 }),
                         ('don_vi',{'fields':[
                                                 ('name',{'key':True, 'required':True, 'xl_title':u'Đơn vị' }),
                                                 ],'key' : False, 'required' : False}),

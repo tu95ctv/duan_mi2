@@ -177,7 +177,7 @@ thiết bị
                                 
                                 
                     ('product_id',{'string':u'Tên Vật tư',
-                                   'print_write_dict_new':True,
+#                                    'print_write_dict_new':True,
                                    'search_func':search_func_for_product_id_,
                                    'offset_write_xl':{all_key_tram:2}, 
                                    'key':'Both',
@@ -829,7 +829,7 @@ thiết bị'''
                              }),
                
                 ('prod_lot_id', {
-                                  'print_write_dict_new':True,
+#                                   'print_write_dict_new':True,
                                  'offset_write_xl':{all_key_tram:3},
                                  'required_force':{all_key_tram:False,key_137:True},
                                  'transfer_name':{sml:'lot_id'},'key':True,

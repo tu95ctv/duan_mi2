@@ -4,6 +4,7 @@ import re
 from odoo.addons.importexcel.models.model_dict_folder.tao_instance_new import importexcel_func
 from odoo.addons.tonkho.models.import_excel_model_dict_folder.model_dict import default_import_xl_setting
 from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_compare, float_round
 # from odoo.addons.importexcel.models.model_dict_folder.recursive_func import export_all_no_pass_dict_para
 
 class Importexcel(models.Model):
@@ -148,7 +149,12 @@ class Importexcel(models.Model):
         self.test_result_3= rs3
         
     def test_code(self):
-        pass
+        fl =  float_compare(1.667, 1.67, precision_rounding=2)
+        fl2 =  float_compare(1.7, 1.67, precision_rounding=2)
+        rs =  float_compare(1.767, 1.67, precision_rounding=0.01)
+        fl3= float_round(1.6667, precision_rounding=0.01)
+        fl4= float_round(1.67, precision_rounding=0.01)
+        raise UserError(u'%s-%s, %s-rs:%s'%(fl4,fl3, fl3==fl4,rs))
     def test_code1(self):
 #         sql_multi_2 = '''select date_trunc('day',create_date) from stock_quant'''
          

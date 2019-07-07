@@ -9,6 +9,7 @@ from odoo.addons.importexcel.models.model_dict_folder.tool_tao_instance import r
 from odoo.addons.downloadwizard.models.dl_models.dl_model  import wrap_center_vert_border_style
 from odoo.addons.importexcel.models.model_dict_folder.get_or_create_func import get_or_create_object_has_x2m
 from odoo.addons.importexcel.models.model_dict_folder.recursive_func import export_all_no_pass_dict_para,rut_gon_key,ordereddict_fields, check_xem_att_co_nam_ngoai_khong, add_model_n_type_n_required_to_fields,define_col_index,check_col_index_match_xl_title,write_get_or_create_title, convert_dict_to_order_dict_string, export_some_key_value_cua_fields_MD 
+from odoo.tools.float_utils import  float_round
 
 def before_ci(self, field_attr, setting, check_file, needdata):
     func_map_database_existence = setting.get('st_allow_func_map_database_existence') and field_attr.get('func_map_database_existence')
@@ -202,7 +203,7 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
     
     
     
-    a,b = export_some_key_value_cua_fields_MD(MD, attr_muon_xuats = ['partern_empty_val'], ghom_dac_tinh = {})
+    a,b = export_some_key_value_cua_fields_MD(MD, attr_muon_xuats = ['field_type'], ghom_dac_tinh = {})
     
     
     
@@ -278,6 +279,7 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
         merge_tuple_list =  sheet.merged_cells
         for number_row_count,row in enumerate(range(first_row, last_row)):
             print ('sheet_name*******',sheet_name,'row',row)
+            sheet_of_copy_wb_para = {'sheet_of_copy_wb':sheet_of_copy_wb,'row':row,'sheet':sheet }
             create_instance (self, COPIED_MD, 
                                               sheet, 
                                               row, 
@@ -289,9 +291,11 @@ def importexcel_func(odoo_or_self_of_wizard, key=False, key_tram=False, check_fi
                                               check_file = check_file,
                                               sheet_of_copy_wb = sheet_of_copy_wb,
                                               setting=setting,
+                                              sheet_of_copy_wb_para = sheet_of_copy_wb_para,
 #                                               is_search = is_search,
 #                                               is_create = is_create,
 #                                               is_write = is_write,
+
                                )
         
     if number_row_count:
@@ -317,6 +321,7 @@ def create_instance (self,
                     check_file = False,
                     sheet_of_copy_wb = False,
                     setting={},
+                    sheet_of_copy_wb_para = None,
 #                     exist_val = False,
 #                     is_search = True,
 #                     is_create = True,
@@ -344,7 +349,8 @@ def create_instance (self,
                                            key_search_dict,
                                            update_dict,
                                            collection_dict,
-                                           setting)
+                                           setting, 
+                                           sheet_of_copy_wb_para)
             if a_field_code =='break_out_a_row_because_a_required':
                 if field_attr.get('raise_if_False') and not check_file:
                     raise UserError('raise_if_False field: %s'%field_name)
@@ -374,6 +380,7 @@ def create_instance (self,
                                                     is_search = is_search,
                                                     is_create = is_create,
                                                     is_write = is_write,
+                                                    sheet_of_copy_wb_para = sheet_of_copy_wb_para
                                                        )
     
     
@@ -436,6 +443,7 @@ def get_a_field_val(self,
 #                                    x2m_fields,
                                    collection_dict,
                                    setting,
+                                   sheet_of_copy_wb_para
                                    
                            ):
     skip_this_field = get_key(field_attr, 'skip_this_field', False)
@@ -453,7 +461,8 @@ def get_a_field_val(self,
                     noti_dict,
                     setting,
                     excel_para = {'col_index':col_index,'sheet':sheet, 'row':row,'merge_tuple_list':merge_tuple_list,'sheet_of_copy_wb': sheet_of_copy_wb },
-                    for_print_para= {'model_name':model_name, 'field_name':field_name}
+                    for_print_para= {'model_name':model_name, 'field_name':field_name}, 
+                    sheet_of_copy_wb_para=sheet_of_copy_wb_para
                     )
 
     field_attr['before_func_val'] = val
@@ -480,7 +489,8 @@ def get_a_field_val(self,
         default_val = field_attr.get('default_val')
         if  default_val!=None:
             val = default_val
-            
+    if field_attr.get('field_type') =='float':
+        val = float_round(val, precision_rounding=0.01)
         
         
     
@@ -528,7 +538,8 @@ def read_val_for_ci(self,
                     noti_dict,
                     setting,
                     excel_para = {},
-                    for_print_para= {}
+                    for_print_para= {}, 
+                    sheet_of_copy_wb_para = None
                     ):  
     col_index =excel_para['col_index'] 
     sheet =excel_para['sheet'] 
@@ -549,7 +560,7 @@ def read_val_for_ci(self,
         if field_attr.get('partern_empty_val'):
             val = empty_string_to_False(val, pt = field_attr.get('partern_empty_val'))
         
-        if val != False and field_attr.get('is_x2m_field'):
+        if val != False and field_attr.get('st_is_x2m_field'):
             val = val.split(',')
             val = list(map(lambda i: empty_string_to_False(i.strip()),val))
             if False in val:
@@ -569,9 +580,11 @@ def read_val_for_ci(self,
                                                                 sheet_of_copy_wb = sheet_of_copy_wb,
 #                                                                 exist_val = exist_val,
                                                                 setting=setting,
+                                                                sheet_of_copy_wb_para = sheet_of_copy_wb_para
 #                                                                 is_search = is_search,
 #                                                                 is_create = is_create,
 #                                                                 is_write = is_write,
+
                                                                )
 #         after_ci()
         
@@ -589,6 +602,7 @@ def get_or_create_instance_from_key_search_and_update_dict(self,
                            is_search = True,
                            is_create = True,
                            is_write = True,#                            collection_dict={}
+                           sheet_of_copy_wb_para = None
                            ):
     
     obj,obj_val, get_or_create = get_or_create_object_has_x2m(self, model_name,
@@ -603,6 +617,7 @@ def get_or_create_instance_from_key_search_and_update_dict(self,
                                                                     is_search = is_search,
                                                                     is_create = is_create,
                                                                     is_write = is_write,
+                                                                    sheet_of_copy_wb_para = sheet_of_copy_wb_para
                                 
                                 )
     return obj,obj_val, get_or_create 
@@ -610,6 +625,8 @@ def get_or_create_instance_from_key_search_and_update_dict(self,
 
             
 def replace_val_for_ci(field_attr, val, needdata):
+    
+    
     
     #### deal replace string ####
     replace_string = get_key( field_attr,'replace_string')
@@ -670,27 +687,32 @@ MAP_TYPE = {
 def check_type_of_val(field_attr, val, field_name, model_name):        
     if field_attr.get('bypass_check_type'):
         return True
-    field_type = field_attr.get('field_type')
-    if field_type:
+    char_field_type = field_attr.get('field_type')
+    if char_field_type:
         type_allow = field_attr.get('type_allow',[])
         if val != False and val != None:
             try:
-                type_tuong_ung_voi_char_field_type = MAP_TYPE[field_type]
+                map_type_of_char_field_type = MAP_TYPE[char_field_type]
             except:
                 return True
-                raise UserError(u'không có field_type:%s này'%field_type)
-            if field_attr.get('is_x2m_field'):
-                type_tuong_ung_voi_char_field_type = list
-            if isinstance( type_tuong_ung_voi_char_field_type,list):
-                type_allow.extend(type_tuong_ung_voi_char_field_type)
+                raise UserError(u'không có field_type:%s này trong MAP_TYPE '%char_field_type)
+            if field_attr.get('st_is_x2m_field'):
+                map_type_of_char_field_type = list
+            if isinstance( map_type_of_char_field_type, list):
+                type_allow.extend(map_type_of_char_field_type)
             else:
-                type_allow.append(type_tuong_ung_voi_char_field_type)
-            pass_type_check = False
-            for a_type_allow in type_allow:
-                if isinstance(val, a_type_allow):
-                    pass_type_check = True
-                    continue
+                type_allow.append(map_type_of_char_field_type)
+#             pass_type_check = False
+            
+#             
+#             for a_type_allow in st_type_allow:
+#                 if isinstance(val, a_type_allow):
+#                     pass_type_check = True
+#                     continue
+            type_of_val = type(val)
+            pass_type_check =  type_of_val in type_allow
+                 
             if not pass_type_check:
-                raise UserError(u'model: %s- field:%s có giá trị: %s, đáng lẽ là field_type:%s nhưng lại có type %s'%(model_name, field_name,val,field_type,type(val)))
+                raise UserError(u'model: %s- field:%s có giá trị: %s, đáng lẽ là field_type:%s nhưng lại có type %s'%(model_name, field_name,val,char_field_type,type(val)))
             
 

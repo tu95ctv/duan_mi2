@@ -14,7 +14,7 @@ ATT_TYPE_LIST ={
   'break_condition_func_for_main_instance': ['NoneType', 'function'],
   'bypass_this_field_if_value_equal_False': ['bool'],
   'inactive_include_search': ['bool'],
-  'is_x2m_field': ['bool'],
+  'st_is_x2m_field': ['bool'],
   'remove_all_or_just_add_one_x2m': ['bool','str'],
   'bypass_this_field_if_value_equal_False_default': ['bool'],
   'st_write_false':['bool'], 
@@ -231,7 +231,7 @@ def add_model_n_type_n_required_to_fields(self, MD, field_stt = 0, setting={}):#
             if field_MD.get('fields'):
                     field_stt = add_model_n_type_n_required_to_fields(self,field_MD, field_stt =  field_stt, setting=setting)
             
-            if 'is_x2m_field' in field_MD:
+            if 'st_is_x2m_field' in field_MD:
                 x2m_fields = MD.setdefault('x2m_fields',[])
                 x2m_fields.append(f_name)
             

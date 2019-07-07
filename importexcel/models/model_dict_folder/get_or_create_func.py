@@ -4,10 +4,12 @@ from odoo.osv import expression
 import datetime
 from odoo import  fields
 from odoo.exceptions import UserError
+from odoo.addons.downloadwizard.models.dl_models.dl_model  import wrap_center_vert_border_style
+from odoo.tools.float_utils import float_compare, float_round
+
 def get_or_create_object_has_x2m (self, class_name, 
                                 search_dict,
                                 write_dict ={},
-                                is_must_update=False, 
                                 noti_dict=None,
                                 inactive_include_search = False,
 #                                 x2m_field=False,
@@ -18,6 +20,7 @@ def get_or_create_object_has_x2m (self, class_name,
                                 is_search = True,
                                 is_create = True,
                                 is_write = True,
+                                sheet_of_copy_wb_para = None
                                  ):
     x2m_fields = model_dict.get('x2m_fields')
     if x2m_fields:
@@ -31,7 +34,7 @@ def get_or_create_object_has_x2m (self, class_name,
                                     class_name, 
                                     search_dict,
                                     write_dict =write_dict,
-                                    is_must_update=is_must_update,noti_dict=noti_dict,
+                                    noti_dict=noti_dict,
                                     inactive_include_search = inactive_include_search,
                                     model_dict = model_dict,
                                     exist_val=exist_val,
@@ -40,7 +43,7 @@ def get_or_create_object_has_x2m (self, class_name,
                                     is_search = is_search,
                                     is_create = is_create,
                                     is_write = is_write,
-                                        
+                                    sheet_of_copy_wb_para = sheet_of_copy_wb_para
                                     )
             result.append(obj.id)
             get_or_create |=get_or_create_iterator
@@ -51,7 +54,8 @@ def get_or_create_object_has_x2m (self, class_name,
             obj_id  = list(map(lambda x: (4,x,False), result)) # [(4,result[0],False)] 
     else:
         obj, get_or_create =  get_or_create_object_sosanh(self, class_name, search_dict,
-                                    write_dict =write_dict, is_must_update=is_must_update, noti_dict=noti_dict,
+                                    write_dict =write_dict,
+                                    noti_dict=noti_dict,
                                     inactive_include_search = inactive_include_search,
                                     model_dict = model_dict,
                                     exist_val=exist_val,
@@ -60,7 +64,9 @@ def get_or_create_object_has_x2m (self, class_name,
                                     is_search = is_search,
                                     is_create = is_create,
                                     is_write = is_write,
+                                    sheet_of_copy_wb_para = sheet_of_copy_wb_para,
                                     )
+        
 
         if obj != None and  obj != False:
             obj_id = obj.id
@@ -75,7 +81,6 @@ def get_or_create_object_has_x2m (self, class_name,
 def get_or_create_object_sosanh(self, class_name,
                                 search_dict,
                                 write_dict ={},
-                                is_must_update=False, 
                                 noti_dict=None,
                                 inactive_include_search = False,
                                 model_dict = {},
@@ -85,6 +90,7 @@ def get_or_create_object_sosanh(self, class_name,
                                 is_search = True,
                                 is_create = True,
                                 is_write = True,
+                                sheet_of_copy_wb_para = None
                                 ):
     search_dict_new = {}
     write_dict_new = {}
@@ -123,7 +129,7 @@ def get_or_create_object_sosanh(self, class_name,
                 val =  search_dict[f_name]
                 if val == None:
                     if check_file:
-                        searched_object,get_or_create =  None, False
+                        searched_object, get_or_create =  None, False
                         break_condition = True
                         break
                     else:
@@ -166,39 +172,42 @@ def get_or_create_object_sosanh(self, class_name,
             return_obj =  created_object
             return return_obj,get_or_create
     allow_write_all_field = setting['allow_write']
-    if is_write  :  
+    if is_write or check_file :  
         if exist_val:
             searched_object = exist_val
         if searched_object :# write
             if len(searched_object) > 1:
                 raise UserError (u' exist_val: %s len(searched_object) > 1, searched_object: %s'%(exist_val,searched_object))
-            for f_name,val in write_dict.items():
-                
-                field_attr = model_dict['fields'][f_name]
-                if field_attr.get('val_goc') ==False and not field_attr.get('write_false'):
+            
+            for f_name, val in write_dict.items():
+                field_MD= model_dict['fields'][f_name]
+                if check_file and  field_MD.get('offset_write_xl') ==None:
+                    continue
+                if not check_file and (field_attr.get('val_goc') ==False and not field_attr.get('write_false')):
                     continue
                     
                 f_name = get_key(field_attr, 'transfer_name') or f_name
-
-                st_write_this_field = field_attr.get('write_field')
-                st_write_this_field = allow_write_all_field if st_write_this_field == None else st_write_this_field
-                raise_if_diff = field_attr.get('raise_if_diff')
-                if not (st_write_this_field or raise_if_diff) :
-                    print ('field_name',f_name,'continue')
+                if check_file:
+                    is_write_this_field = False
+                else:
+                    is_write_this_field = field_attr.get('write_field')
+                    is_write_this_field = allow_write_all_field if is_write_this_field == None else is_write_this_field
+                if not check_file and not is_write_this_field :
                     continue
-                if not is_must_update or raise_if_diff :
-                    orm_field_val = getattr(searched_object, f_name)
-                    diff = check_diff_write_val_with_exist_obj(orm_field_val,val)
-                    if diff:
-                        if raise_if_diff:
-                            raise UserError(u'raise_if_diff model:%s-f_name:%s - orm_field_val: %s -  val:%s '%(class_name,f_name,orm_field_val,val))
-                        if st_write_this_field:
-                            write_dict_new[f_name] = val
-                else:# is_must_update and not raise_if_diff
-                    write_dict_new[f_name] = val
+                orm_field_val = getattr(searched_object, f_name)
+                diff = check_diff_write_val_with_exist_obj(orm_field_val, val, field_attr)
+                if diff:
+                    if is_write_this_field:
+                        write_dict_new[f_name] = val
+                    if check_file:
+                        diff_show = 'Khac orm:%s-dict:%s'%(orm_field_val, val)
+                else:
+                    if check_file:
+                        diff_show = 'Giong orm:%s-dict:%s'%(orm_field_val, val)
+                if check_file:
+                    sheet_of_copy_wb = sheet_of_copy_wb_para['sheet_of_copy_wb']
+                    sheet_of_copy_wb.write(sheet_of_copy_wb_para['row'], sheet_of_copy_wb_para['sheet'].ncols + field_MD.get('offset_write_xl'), diff_show, wrap_center_vert_border_style)
             if write_dict_new:
-                if model_dict.get('print_write_dict_new',False):
-                    print ('***write_dict_new***',write_dict_new)
                 searched_object.write(write_dict_new)
                 this_model_noti_dict['update'] = this_model_noti_dict.get('update',0) + 1
             else:#'not update'
@@ -206,18 +215,25 @@ def get_or_create_object_sosanh(self, class_name,
         
     return return_obj, get_or_create# bool(searched_object)
 
-def check_diff_write_val_with_exist_obj(orm_field_val,field_dict_val):
+def check_diff_write_val_with_exist_obj(orm_field_val, field_dict_val, field_attr):
     is_write = False
-    try:
-        converted_orm_val_to_dict_val = getattr(orm_field_val, 'id', orm_field_val)
-        if converted_orm_val_to_dict_val == None: #recorderset.id ==None when recorder set = ()
-            converted_orm_val_to_dict_val = False
-    except:
-        converted_orm_val_to_dict_val = orm_field_val
+    
     if isinstance(orm_field_val, datetime.date):
         converted_orm_val_to_dict_val = fields.Date.from_string(orm_field_val)
-    if converted_orm_val_to_dict_val != field_dict_val:
-        is_write = True
+    elif isinstance(orm_field_val, datetime.datetime):
+        converted_orm_val_to_dict_val = fields.Datetime.from_string(orm_field_val)
+    else:
+        try:
+            converted_orm_val_to_dict_val = getattr(orm_field_val, 'id', orm_field_val)
+            if converted_orm_val_to_dict_val == None: #recorderset.id ==None when recorder set = ()
+                converted_orm_val_to_dict_val = False
+        except:
+            converted_orm_val_to_dict_val = orm_field_val
+    if field_attr.get('field_type')=='float':
+        is_write = float_compare(orm_field_val, field_dict_val, precision_rounding=0.01)
+    else:
+        if converted_orm_val_to_dict_val != field_dict_val:
+            is_write = True
     return is_write
     
                 
